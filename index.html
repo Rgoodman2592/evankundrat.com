@@ -666,30 +666,31 @@ function timeStr() {
     d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
 }
 
-// ── Persistent message storage ──
-const MSG_STORAGE_KEY = 'ek_messages';
+// ── Backend API ──
+const MSG_API = 'https://le5a0p1bc8.execute-api.us-east-1.amazonaws.com/messages';
 
-function loadMessages() {
+async function loadMessagesFromDB() {
   try {
-    const stored = localStorage.getItem(MSG_STORAGE_KEY);
-    if (!stored) return [];
-    return JSON.parse(stored);
+    const resp = await fetch(MSG_API);
+    if (!resp.ok) return [];
+    return await resp.json();
   } catch(e) { return []; }
 }
 
-function saveMessage(name, text, isEvan, time) {
-  const msgs = loadMessages();
-  msgs.unshift({ name, text, isEvan, time });
-  // Keep last 200 messages max
-  if (msgs.length > 200) msgs.length = 200;
-  localStorage.setItem(MSG_STORAGE_KEY, JSON.stringify(msgs));
+async function saveMessageToDB(name, text, isEvan, time) {
+  try {
+    await fetch(MSG_API, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, text, isEvan, time })
+    });
+  } catch(e) { console.warn('Failed to save message:', e); }
 }
 
-function renderStoredMessages() {
-  const msgs = loadMessages();
+async function renderStoredMessages() {
+  const msgs = await loadMessagesFromDB();
   const board = document.getElementById('messages');
-  // Render oldest first so newest end up on top
-  msgs.reverse().forEach(m => {
+  msgs.forEach(m => {
     const div = document.createElement('div');
     div.className = m.isEvan ? 'msg-evan' : 'msg-user';
     div.style.animation = 'none';
@@ -698,7 +699,7 @@ function renderStoredMessages() {
       <div class="msg-text">${escapeHtml(m.text)}</div>
       <div class="msg-time">${m.time}</div>
     `;
-    board.insertBefore(div, board.firstChild);
+    board.appendChild(div);
   });
 }
 
@@ -718,8 +719,8 @@ function addMsg(name, text, isEvan, animate) {
   `;
   const board = document.getElementById('messages');
   board.insertBefore(div, board.firstChild);
-  // Persist to localStorage
-  saveMessage(name, text, isEvan, time);
+  // Persist to DynamoDB
+  saveMessageToDB(name, text, isEvan, time);
 }
 
 function escapeHtml(str) {
