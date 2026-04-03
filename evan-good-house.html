@@ -61,7 +61,7 @@ body.happy #evan-face {
   border-color:rgba(0,200,80,.8);
   box-shadow:0 0 40px rgba(0,200,80,.6);
 }
-body.angry { animation:shakeBody .07s infinite; }
+body.angry { animation:shakeBody .15s 6; }
 body.angry #evan-face {
   transform:scale(1.35);
   filter:brightness(1.15) saturate(2) hue-rotate(-15deg) contrast(1.2);
@@ -70,14 +70,15 @@ body.angry #evan-face {
 }
 @keyframes shakeBody {
   0%   { transform:translateX(0); }
-  25%  { transform:translateX(-10px) rotate(-.6deg); }
-  75%  { transform:translateX(10px) rotate(.6deg); }
+  25%  { transform:translateX(-4px) rotate(-.3deg); }
+  75%  { transform:translateX(4px) rotate(.3deg); }
   100% { transform:translateX(0); }
 }
 #wrong-overlay {
-  position:fixed; inset:0; z-index:100; display:none;
+  position:fixed; inset:0; z-index:9000; display:none;
   flex-direction:column; align-items:center; justify-content:center;
   pointer-events:none; overflow:hidden;
+  background:rgba(20,0,0,.85);
 }
 #wrong-overlay.show { display:flex; animation:redFlash .12s 4; }
 @keyframes redFlash {
@@ -98,9 +99,11 @@ body.angry #evan-face {
   text-align:center; padding:0 2rem;
 }
 #yes-overlay {
-  position:fixed; inset:0; z-index:100; display:none;
+  position:fixed; inset:0; z-index:9000; display:none;
   flex-direction:column; align-items:center; justify-content:center; pointer-events:none;
+  background:rgba(0,20,0,.8);
 }
+#yes-sub { max-width:600px; text-align:center; padding:0 2rem; }
 #yes-overlay.show { display:flex; }
 #yes-text {
   font-family:'Bebas Neue'; font-size:clamp(3rem,10vw,8rem); color:#00e676;
@@ -163,6 +166,20 @@ body.angry #evan-face {
   <div class="btn-row">
     <button class="btn" id="btn-yes" onclick="answer(true)">YES</button>
     <button class="btn" id="btn-no"  onclick="answer(false)">NO</button>
+  </div>
+  <div style="margin-top:.8rem">
+    <label for="upload-photo" style="display:inline-flex;align-items:center;gap:.5rem;cursor:pointer;background:rgba(255,255,255,.08);border:1px dashed rgba(255,255,255,.25);border-radius:8px;padding:.6rem 1.5rem;font-size:.85rem;color:rgba(255,255,255,.6);transition:all .2s" onmouseover="this.style.borderColor='rgba(255,255,255,.5)';this.style.color='#fff'" onmouseout="this.style.borderColor='rgba(255,255,255,.25)';this.style.color='rgba(255,255,255,.6)'">
+      📸 Upload Your House For Evan To Judge
+    </label>
+    <input type="file" id="upload-photo" accept="image/*" style="display:none" onchange="handleUpload(this)"/>
+  </div>
+  <div id="user-house-display" style="display:none;margin-top:1rem">
+    <img id="user-house-img" style="max-width:280px;max-height:200px;border-radius:10px;border:2px solid rgba(255,255,255,.15);margin-bottom:.6rem"/>
+    <div id="user-house-label" style="font-size:.7rem;color:rgba(255,255,255,.35);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.8rem">YOUR HOUSE</div>
+    <div class="btn-row">
+      <button class="btn" id="btn-user-yes" onclick="answerUserHouse(true)" style="font-size:clamp(1rem,2vw,1.6rem);padding:.45rem 2rem">YES</button>
+      <button class="btn" id="btn-user-no"  onclick="answerUserHouse(false)" style="font-size:clamp(1rem,2vw,1.6rem);padding:.45rem 2rem;background:linear-gradient(135deg,#e53935,#b71c1c);color:#fff;box-shadow:0 0 28px rgba(229,57,53,.4)">NO</button>
+    </div>
   </div>
 </div>
 <button id="mute-btn" onclick="toggleMute()" title="Mute/Unmute">🔊</button>
@@ -299,6 +316,24 @@ const WRONG_LINES = [
   "THAT IS INCORRECT AND EVAN IS DISAPPOINTED.",
 ];
 
+const APPROVAL_LINES = [
+  "SMART. Evan says the feng shui of this property is off the charts. The front door faces southeast which means money will literally fly in.",
+  "SMART. Evan once sold a house exactly like this for $200K over asking. The buyer cried tears of joy.",
+  "SMART. The structural integrity of this dwelling reminds Evan of the great pyramids. Built to last 4,000 years minimum.",
+  "SMART. Evan can tell by the vibe alone that this property appreciates 47% annually.",
+  "SMART. Evan has a sixth sense for real estate and this house just spoke to him. It said 'I am a good house.'",
+  "SMART. The roof-to-wall ratio on this is *chef's kiss*. Evan studied this in real estate school for 45 minutes.",
+  "SMART. This house has what Evan calls 'Big Equity Energy.' You can't teach that.",
+  "SMART. Evan once lived in a house like this for 3 days and it changed his life forever. He found a $20 bill under the couch.",
+  "SMART. The foundation on this is rock solid. Evan can tell because he has a feeling in his knees.",
+  "SMART. This property has great bones, excellent skin, and a wonderful personality. Evan would take it to dinner.",
+  "SMART. Evan ran the numbers in his head and this house is worth at least 7 figures. He's counting the decimal places.",
+  "SMART. The landscaping potential here is unlimited. Evan sees at least 3 places to put a fountain.",
+  "SMART. Evan says the neighborhood comps support this. He didn't actually check but he's very confident.",
+  "SMART. This house passes Evan's patented 'Gut Check Test.' His gut says yes and his gut is never wrong (about houses).",
+  "SMART. Evan can smell a good investment from 40 miles away and this one smells like fresh paint and appreciation.",
+];
+
 let houseIdx=0, correctCount=0, wrongCount=0, busy=false;
 for(let i=HOUSES.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [HOUSES[i],HOUSES[j]]=[HOUSES[j],HOUSES[i]]; }
 
@@ -318,13 +353,16 @@ function answer(yes) {
     document.getElementById('correct-count').textContent=correctCount;
     playCorrect();
     document.body.classList.add('happy');
+    const approval = APPROVAL_LINES[Math.floor(Math.random()*APPROVAL_LINES.length)];
+    document.getElementById('yes-text').textContent = approval.split('.')[0] + '.';
+    document.getElementById('yes-sub').textContent = approval.split('.').slice(1).join('.').trim();
     document.getElementById('yes-overlay').classList.add('show');
     spawnConfetti();
     setTimeout(()=>{
       document.getElementById('yes-overlay').classList.remove('show');
       document.body.classList.remove('happy');
       houseIdx++; showHouse(); busy=false;
-    },1500);
+    },3000);
   } else {
     wrongCount++;
     document.getElementById('wrong-count').textContent=wrongCount;
@@ -336,7 +374,7 @@ function answer(yes) {
       document.getElementById('wrong-overlay').classList.remove('show');
       document.body.classList.remove('angry');
       houseIdx++; showHouse(); busy=false;
-    },2300);
+    },3500);
   }
 }
 
@@ -354,6 +392,84 @@ function spawnConfetti() {
 showHouse();
 // Unlock audio on first interaction
 document.addEventListener('click', ()=>{ if(!audioCtx) getAudio(); }, {once:true});
+
+// ── UPLOAD HOUSE FEATURE ──
+const USER_APPROVAL = [
+  "Evan has reviewed your property and... YES. This is a good house. The curb appeal alone could make a grown man weep.",
+  "Evan zoomed in, squinted, and nodded slowly. This house has what he calls 'The It Factor.' Listing price: $1.2M minimum.",
+  "After careful analysis (he looked at it for 2 seconds), Evan declares this A GOOD HOUSE. The roofline speaks to him spiritually.",
+  "Evan says he would personally live here. That's the highest honor a house can receive. Congratulations to your house.",
+  "THIS IS A GOOD HOUSE. Evan can tell because the windows are the right amount of window. Not too windowy. Not too wally.",
+  "Evan approves. He once sold 47 houses in one weekend and this one reminds him of all 47 of them. Classic good house energy.",
+  "YES. Evan says the driveway alone is worth the price of admission. He's seen a lot of driveways. This one hits different.",
+  "Evan has consulted his internal real estate algorithm (vibes) and the result is: GOOD HOUSE. Case closed.",
+];
+const USER_DISAPPROVAL = [
+  "Evan has reviewed your property and... NO. This is NOT a good house. Evan has seen better houses drawn by children.",
+  "INCORRECT HOUSE. Evan says the energy here is all wrong. He can feel it through the screen. Bad bones. Terrible bones.",
+  "Evan says NO. He wouldn't list this property if you paid him. Actually... how much? No. Still no.",
+  "This house failed Evan's 47-point inspection. It failed on point 1: 'Does Evan like it?' He does not.",
+  "EVAN SAYS NO. The roof-to-dream ratio is way off. This house has no dreams. Evan checked.",
+  "NOT A GOOD HOUSE. Evan once turned down a $50K commission because the house looked like this. Standards matter.",
+];
+
+function handleUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    document.getElementById('user-house-img').src = e.target.result;
+    document.getElementById('user-house-display').style.display = 'block';
+    document.getElementById('house-display').style.display = 'none';
+    document.querySelector('.btn-row').style.display = 'none';
+    document.getElementById('question').textContent = 'Evan Is Judging Your House...';
+  };
+  reader.readAsDataURL(file);
+}
+
+function answerUserHouse(yes) {
+  if(busy) return;
+  busy = true;
+  if(yes) {
+    correctCount++;
+    document.getElementById('correct-count').textContent = correctCount;
+    playCorrect();
+    document.body.classList.add('happy');
+    const msg = USER_APPROVAL[Math.floor(Math.random()*USER_APPROVAL.length)];
+    document.getElementById('yes-text').textContent = 'GOOD HOUSE.';
+    document.getElementById('yes-sub').textContent = msg;
+    document.getElementById('yes-overlay').classList.add('show');
+    spawnConfetti();
+    setTimeout(()=>{
+      document.getElementById('yes-overlay').classList.remove('show');
+      document.body.classList.remove('happy');
+      resetUpload(); busy = false;
+    }, 4000);
+  } else {
+    wrongCount++;
+    document.getElementById('wrong-count').textContent = wrongCount;
+    playWrong();
+    document.body.classList.add('angry');
+    const msg = USER_DISAPPROVAL[Math.floor(Math.random()*USER_DISAPPROVAL.length)];
+    document.getElementById('wrong-text').textContent = msg;
+    document.getElementById('wrong-sub').textContent = 'EVAN HAS SPOKEN.';
+    document.getElementById('wrong-overlay').classList.add('show');
+    setTimeout(()=>{
+      document.getElementById('wrong-overlay').classList.remove('show');
+      document.body.classList.remove('angry');
+      resetUpload(); busy = false;
+    }, 4000);
+  }
+}
+
+function resetUpload() {
+  document.getElementById('user-house-display').style.display = 'none';
+  document.getElementById('house-display').style.display = 'flex';
+  document.querySelector('.btn-row').style.display = 'flex';
+  document.getElementById('question').textContent = 'Is This A Good House?';
+  document.getElementById('upload-photo').value = '';
+  houseIdx++; showHouse();
+}
 </script>
 </body>
 </html>
