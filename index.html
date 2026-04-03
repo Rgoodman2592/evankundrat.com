@@ -815,18 +815,8 @@ Use emojis but not excessively. Sound like a real person texting who might be sl
   return data.content[0].text;
 }
 
-// ── Pre-populate with a few messages ──
-const SEED_MSGS = [
-  {name:'Mike D.', msg:'Evan your set at Echostage last month was INSANE. When are you back?', evan:"Oh man that night was everything!! Keep your eyes on my Instagram @evan_wilder — got some big shows coming up soon that I can't wait to announce 🔥"},
-  {name:'Sarah K.', msg:'Just bought my first home with Evan as my realtor. Best experience ever!!', evan:"Sarah!! Congratulations on your first home, this genuinely makes me so happy 🏠 You were an absolute dream client. Enjoy every single second of it! 💜"},
-  {name:'HockeyFan99', msg:'My guy really thinks he can play hockey lol', evan:"Listen... I may not be Ovechkin but I bring ENERGY to the ice and that counts for something! 🏒😂 Come skate with me sometime and we'll see who's laughing!"},
-];
-
-// Add seed messages in reverse (oldest first visually = bottom)
-SEED_MSGS.slice().reverse().forEach(m => {
-  addMsg(m.name, m.msg, false, false);
-  addMsg('Evan Wilder', m.evan, true, false);
-});
+// ── Seed messages (only once, stored in DB) ──
+// Seeding is done — messages live in DynamoDB now.
 
 // ── Enter key submits ──
 document.getElementById('input-msg').addEventListener('keydown', e => {
