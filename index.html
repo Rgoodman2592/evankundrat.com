@@ -473,9 +473,72 @@ body::after{
   text-align:center;padding:2rem;
   font-size:.6rem;letter-spacing:.15em;color:rgba(255,255,255,.15);text-transform:uppercase;
 }
+/* ── GAME DROP BANNER ── */
+#game-banner{
+  position:relative;z-index:50;
+  overflow:hidden;
+  background:linear-gradient(90deg,#ff3cac,#7928ca,#00f0ff,#ff3cac);
+  background-size:300% 100%;
+  animation:bannerGradient 4s linear infinite;
+  padding:.6rem 0;
+  border-bottom:2px solid rgba(255,255,255,.15);
+  white-space:nowrap;
+}
+@keyframes bannerGradient{
+  0%{background-position:0% 50%}
+  100%{background-position:300% 50%}
+}
+#game-banner-track{
+  display:inline-flex;
+  animation:bannerScroll 18s linear infinite;
+}
+@keyframes bannerScroll{
+  0%{transform:translateX(0)}
+  100%{transform:translateX(-50%)}
+}
+.banner-item{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(1.6rem,4vw,3rem);
+  letter-spacing:.08em;
+  color:#fff;
+  text-shadow:0 0 20px rgba(0,0,0,.5),0 0 40px rgba(121,40,202,.6);
+  padding:0 3rem;
+  flex-shrink:0;
+}
+.banner-item span{
+  color:#ffdd00;
+  text-shadow:0 0 15px rgba(255,221,0,.7),0 0 30px rgba(255,60,172,.5);
+}
+#clue-hint{
+  text-align:center;
+  font-family:'Orbitron',sans-serif;
+  font-size:clamp(.7rem,1.8vw,1rem);
+  font-weight:900;
+  letter-spacing:.3em;
+  text-transform:uppercase;
+  color:#ffdd00;
+  text-shadow:0 0 10px rgba(255,221,0,.8),0 0 30px rgba(255,60,172,.5);
+  padding:.3rem 0;
+  animation:clueFlicker 2s ease-in-out infinite;
+}
+@keyframes clueFlicker{
+  0%,100%{opacity:1}
+  50%{opacity:.4}
+}
 </style>
 </head>
 <body>
+
+<!-- COUNTDOWN BANNER -->
+<div id="game-banner">
+  <div id="game-banner-track">
+    <span class="banner-item">🎮 NEW EVAN GAME DROP IN T-MINUS <span id="countdown">??:??:??:??</span> 🎮</span>
+    <span class="banner-item">🎮 NEW EVAN GAME DROP IN T-MINUS <span class="countdown-clone">??:??:??:??</span> 🎮</span>
+    <span class="banner-item">🎮 NEW EVAN GAME DROP IN T-MINUS <span class="countdown-clone">??:??:??:??</span> 🎮</span>
+    <span class="banner-item">🎮 NEW EVAN GAME DROP IN T-MINUS <span class="countdown-clone">??:??:??:??</span> 🎮</span>
+  </div>
+  <div id="clue-hint">👀 Look for the clues Evan!! 👀</div>
+</div>
 
 <!-- HEADER -->
 <div id="header">
@@ -828,6 +891,36 @@ document.getElementById('cow-card').href = 'evan-broom.html';
 
 // Update cow card to note it's separate from the witch one
 // (they share a file for now — in production these'd be separate)
+</script>
+<script>
+// Countdown — randomize between 3-14 days from now so it's always mysterious
+(function(){
+  const seed = Math.floor(Date.now()/86400000); // changes daily
+  const rng = ((seed * 9301 + 49297) % 233280) / 233280;
+  const days = Math.floor(rng * 11) + 3; // 3-14 days
+  const target = new Date();
+  target.setDate(target.getDate() + days);
+  target.setHours(23,59,59,0);
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function tick(){
+    const now = new Date();
+    const diff = target - now;
+    if(diff <= 0){
+      document.querySelectorAll('#countdown, .countdown-clone').forEach(el => el.textContent = '00:00:00:00');
+      return;
+    }
+    const d = Math.floor(diff/86400000);
+    const h = Math.floor((diff%86400000)/3600000);
+    const m = Math.floor((diff%3600000)/60000);
+    const s = Math.floor((diff%60000)/1000);
+    const str = pad(d)+'D:'+pad(h)+'H:'+pad(m)+'M:'+pad(s)+'S';
+    document.querySelectorAll('#countdown, .countdown-clone').forEach(el => el.textContent = str);
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 </script>
 </body>
 </html>
